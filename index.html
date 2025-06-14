@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemistry 101: An Interactive Explainer with Gemini AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Calm Blue -->
+    <!-- Application Structure Plan: The SPA is designed as a single, vertically scrolling page that follows the logical narrative of the source screenplay: Intro -> Atoms -> Bonding -> Reactions -> Conclusion. This linear, story-like progression is intuitive for learners, guiding them from fundamental concepts to more complex ones. Key interactions include clickable diagrams to explore atomic components, tabbed interfaces with button-triggered animations to demonstrate different bond types, and a final interactive section combining animation with a data chart to illustrate chemical reactions and the Law of Conservation of Mass. This structure was chosen to transform the passive script into an active learning experience, where users control the pace and engage directly with the concepts. Gemini API features are added to deepen understanding and encourage exploration. -->
+    <!-- Visualization & Content Choices: 
+        1. Atomic Structure: Goal: Inform & Simplify. Method: Interactive Diagram (HTML/CSS/JS) with a Gemini-powered explainer. Interaction: User clicks on atom parts for info, then clicks a button to call the Gemini API for a simplified analogy. Justification: Reinforces learning through direct interaction and provides a layered, more accessible explanation.
+        2. Chemical Bonding: Goal: Compare, Demonstrate, & Explore. Method: Animated Diagrams (HTML/CSS/JS) with a Gemini-powered molecule suggester. Interaction: User triggers animations and can input an element name to get molecule suggestions from the Gemini API. Justification: Visualizes abstract processes and uses AI to spark curiosity beyond the provided examples.
+        3. Chemical Reactions: Goal: Demonstrate Change & Prove a Law. Method: Animation of molecular rearrangement paired with a Bar Chart (Chart.js/Canvas). Interaction: User triggers the reaction animation; the chart displays atom counts. Justification: The animation shows the 'how', while the chart provides 'proof' of the Law of Conservation of Mass.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .atom-particle {
+            transition: all 0.3s ease-in-out;
+        }
+        .atom-particle:hover {
+            transform: scale(1.1);
+            filter: brightness(1.1);
+        }
+        .electron-orbit {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border: 2px dashed #94a3b8;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .electron {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #38bdf8;
+            border-radius: 50%;
+            transform-origin: center;
+        }
+        .bonding-atom {
+            transition: transform 1s ease-in-out, opacity 1s ease-in-out;
+        }
+        .reaction-molecule {
+            transition: all 1s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link.active {
+            color: #fb923c;
+            font-weight: 600;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-xl font-bold text-slate-700">
+                🧪 Chemistry 101
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#intro" class="nav-link text-slate-600 hover:text-orange-400 transition-colors">Intro</a>
+                <a href="#atoms" class="nav-link text-slate-600 hover:text-orange-400 transition-colors">Atoms</a>
+                <a href="#bonding" class="nav-link text-slate-600 hover:text-orange-400 transition-colors">Bonding</a>
+                <a href="#reactions" class="nav-link text-slate-600 hover:text-orange-400 transition-colors">Reactions</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-16">
+
+        <section id="intro" class="text-center min-h-[60vh] flex flex-col justify-center items-center">
+            <h1 class="text-4xl md:text-6xl font-bold text-slate-800 mb-4">The Universe in a Nutshell</h1>
+            <p class="max-w-3xl mx-auto text-lg md:text-xl text-slate-600 mb-8">
+                Have you ever wondered what you're *really* made of? This is your interactive instruction manual for the universe, now with AI-powered explanations to make learning even easier. Welcome to the world of chemistry!
+            </p>
+            <a href="#atoms" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+                Start Exploring
+            </a>
+        </section>
+
+        <section id="atoms" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold">The Atom: Ultimate LEGO Bricks</h2>
+                <p class="max-w-3xl mx-auto text-lg text-slate-600 mt-4">
+                    Everything is built from atoms. Interact with this model to learn about its core components. Click on a particle, then use the ✨ button for a simplified explanation from our AI assistant!
+                </p>
+            </div>
+            <div class="flex flex-col md:flex-row items-center gap-8 md:gap-16">
+                <div class="w-full md:w-1/2 h-80 md:h-96 relative flex justify-center items-center">
+                    <div id="nucleus" class="relative w-32 h-32 bg-slate-200 rounded-full flex justify-center items-center shadow-inner">
+                        <div id="proton1" data-name="Proton" data-charge="Positive (+)" data-info="Located in the nucleus, protons have a positive charge. The number of protons defines what element an atom is!" class="atom-particle absolute w-10 h-10 bg-rose-500 rounded-full cursor-pointer flex items-center justify-center text-white font-bold text-xl" style="transform: translate(-20px, -15px);">P</div>
+                        <div id="proton2" data-name="Proton" data-charge="Positive (+)" data-info="Located in the nucleus, protons have a positive charge. The number of protons defines what element an atom is!" class="atom-particle absolute w-10 h-10 bg-rose-500 rounded-full cursor-pointer flex items-center justify-center text-white font-bold text-xl" style="transform: translate(20px, 15px);">P</div>
+                        <div id="neutron1" data-name="Neutron" data-charge="Neutral (0)" data-info="Also in the nucleus, neutrons have no charge. They add mass to the atom and help hold the protons together." class="atom-particle absolute w-10 h-10 bg-slate-500 rounded-full cursor-pointer flex items-center justify-center text-white font-bold text-xl" style="transform: translate(15px, -20px);">N</div>
+                        <div id="neutron2" data-name="Neutron" data-charge="Neutral (0)" data-info="Also in the nucleus, neutrons have no charge. They add mass to the atom and help hold the protons together." class="atom-particle absolute w-10 h-10 bg-slate-500 rounded-full cursor-pointer flex items-center justify-center text-white font-bold text-xl" style="transform: translate(-15px, 20px);">N</div>
+                    </div>
+                    <div class="electron-orbit" style="width: 250px; height: 250px;">
+                         <div id="electron1" data-name="Electron" data-charge="Negative (-)" data-info="Electrons are tiny, negatively charged particles that orbit the nucleus in shells. They are the key players in chemical bonding!" class="atom-particle electron cursor-pointer flex items-center justify-center text-white font-bold" style="top: 0%; left: 50%; transform: translate(-50%, -50%);">e⁻</div>
+                    </div>
+                     <div class="electron-orbit" style="width: 350px; height: 350px;">
+                         <div id="electron2" data-name="Electron" data-charge="Negative (-)" data-info="Electrons are tiny, negatively charged particles that orbit the nucleus in shells. They are the key players in chemical bonding!" class="atom-particle electron cursor-pointer flex items-center justify-center text-white font-bold" style="top: 50%; left: 0%; transform: translate(-50%, -50%);">e⁻</div>
+                    </div>
+                </div>
+                <div id="atom-info-box" class="w-full md:w-1/2 p-6 bg-white rounded-lg shadow-lg min-h-[300px] flex flex-col">
+                    <h3 id="particle-name" class="text-2xl font-bold text-slate-700">Click a Particle</h3>
+                    <p id="particle-charge" class="text-orange-500 font-semibold mb-2"></p>
+                    <p id="particle-info" class="text-slate-600 flex-grow">Hover over and click on P (Proton), N (Neutron), or e⁻ (Electron) to learn about them.</p>
+                    <button id="explain-simple-btn" class="hidden mt-4 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-full shadow-md transition-all flex items-center justify-center gap-2">✨ Explain Like I'm 5</button>
+                    <div id="simple-explanation-box" class="mt-4 p-3 bg-sky-50 rounded-lg text-slate-700 border border-sky-200 hidden"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="bonding" class="py-16 md:py-24 bg-slate-100 rounded-2xl">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold">Chemical Bonding: The Atomic Social Network</h2>
+                <p class="max-w-3xl mx-auto text-lg text-slate-600 mt-4">
+                    Atoms bond to become stable. Explore the main types of bonds, or ask our ✨ AI assistant to suggest a new molecule you can create!
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div>
+                    <div class="flex justify-center mb-8 border-b border-slate-300">
+                        <button data-tab="ionic" class="bonding-tab-btn active font-semibold py-3 px-6 text-lg border-b-2 border-orange-500 text-orange-500">Ionic Bonding</button>
+                        <button data-tab="covalent" class="bonding-tab-btn font-semibold py-3 px-6 text-lg border-b-2 border-transparent text-slate-500 hover:text-orange-500">Covalent Bonding</button>
+                    </div>
+
+                    <div id="ionic-content" class="bonding-tab-content">
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold">Ionic Bond: The Giver & The Taker</h3>
+                            <p class="text-slate-600 max-w-2xl mx-auto mt-2">One atom gives an electron, and another takes it. This creates charged ions that attract each other like magnets. Let's make table salt (NaCl)!</p>
+                        </div>
+                        <div class="relative flex justify-center items-center h-64 my-8">
+                            <div id="sodium-atom" class="bonding-atom absolute flex items-center justify-center" style="transform: translateX(-150px);">
+                                <div class="w-24 h-24 bg-sky-300 rounded-full flex items-center justify-center text-2xl font-bold text-white">Na</div>
+                                <div id="sodium-electron" class="bonding-atom absolute w-6 h-6 bg-sky-800 rounded-full" style="transform: translate(55px, 0px);"></div>
+                            </div>
+                            <div id="chlorine-atom" class="bonding-atom absolute flex items-center justify-center" style="transform: translateX(150px);">
+                                <div class="w-28 h-28 bg-emerald-300 rounded-full flex items-center justify-center text-2xl font-bold text-white">Cl</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button id="ionic-bond-btn" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">Form Ionic Bond</button>
+                        </div>
+                    </div>
+
+                    <div id="covalent-content" class="bonding-tab-content hidden">
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold">Covalent Bond: Better Together</h3>
+                            <p class="text-slate-600 max-w-2xl mx-auto mt-2">Sometimes, atoms find it's better to share electrons. By sharing, both atoms get to feel like they have a full outer shell. Let's make water (H₂O)!</p>
+                        </div>
+                        <div class="relative flex justify-center items-center h-64 my-8">
+                            <div id="oxygen-atom" class="bonding-atom absolute flex items-center justify-center">
+                                <div class="w-32 h-32 bg-rose-400 rounded-full flex items-center justify-center text-3xl font-bold text-white">O</div>
+                            </div>
+                            <div id="hydrogen1-atom" class="bonding-atom absolute flex items-center justify-center" style="transform: translate(-150px, -60px);">
+                                <div class="w-16 h-16 bg-sky-300 rounded-full flex items-center justify-center text-xl font-bold text-white">H</div>
+                            </div>
+                            <div id="hydrogen2-atom" class="bonding-atom absolute flex items-center justify-center" style="transform: translate(-150px, 60px);">
+                                <div class="w-16 h-16 bg-sky-300 rounded-full flex items-center justify-center text-xl font-bold text-white">H</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button id="covalent-bond-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">Form Covalent Bond</button>
+                        </div>
+                    </div>
+                </div>
+                 <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-2xl font-bold mb-4">✨ Suggest a Molecule</h3>
+                    <p class="text-slate-600 mb-4">Curious about what else you can make? Enter an element (e.g., Carbon, Oxygen) and let our AI suggest a simple molecule!</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="element-input" placeholder="Enter an element name" class="flex-grow p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:outline-none">
+                        <button id="suggest-molecule-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-md shadow-md flex items-center justify-center">Suggest</button>
+                    </div>
+                    <div id="molecule-suggestion-box" class="mt-4 p-4 bg-orange-50 rounded-lg text-slate-700 border border-orange-200 min-h-[100px]">
+                        Enter an element to get a suggestion.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="reactions" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold">Chemical Reactions: The Great Remix</h2>
+                <p class="max-w-3xl mx-auto text-lg text-slate-600 mt-4">
+                   When molecules meet, they can rearrange their atoms to form new molecules. This is a chemical reaction! Nothing is created or destroyed, just remixed. Here, we'll see baking soda and vinegar react, and prove that all the atoms are conserved.
+                </p>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div id="reaction-animation-box" class="relative h-80 bg-slate-100 rounded-lg flex flex-col justify-center items-center p-4">
+                        <div id="reactants-view" class="flex gap-4">
+                            <div class="reaction-molecule text-center">
+                                <span class="text-3xl">🥤</span>
+                                <p class="font-bold">Vinegar</p>
+                            </div>
+                            <div class="text-3xl font-light self-center">+</div>
+                            <div class="reaction-molecule text-center">
+                                <span class="text-3xl">📦</span>
+                                <p class="font-bold">Baking Soda</p>
+                            </div>
+                        </div>
+                         <div id="products-view" class="absolute inset-0 flex items-center justify-center gap-4 opacity-0">
+                            <div class="reaction-molecule text-center">
+                                <span class="text-3xl">💧</span>
+                                <p class="font-bold">Water</p>
+                            </div>
+                            <div class="text-3xl font-light self-center">+</div>
+                            <div class="reaction-molecule text-center">
+                                <span class="text-3xl">💨</span>
+                                <p class="font-bold">CO₂ Gas</p>
+                            </div>
+                            <div class="text-3xl font-light self-center">+</div>
+                            <div class="reaction-molecule text-center">
+                                <span class="text-3xl">🧂</span>
+                                <p class="font-bold">Salt</p>
+                            </div>
+                        </div>
+                        <button id="reaction-btn" class="absolute bottom-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">Start Reaction</button>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4">Law of Conservation of Mass</h3>
+                        <p class="text-slate-600 mb-4">This chart shows the number of each type of atom before (Reactants) and after (Products) the reaction. Notice how the numbers are exactly the same. Atoms are not lost, only rearranged!</p>
+                        <div class="chart-container">
+                            <canvas id="conservation-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="text-center py-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">You're a Walking Chemical Reaction!</h2>
+            <p class="max-w-3xl mx-auto text-lg md:text-xl text-slate-600">
+                And that's pretty amazing. From the air you breathe to the phone in your hand, it's all chemistry. We've seen that everything is made of atoms, which bond together, and are constantly remixing themselves in chemical reactions. The universe is a busy place!
+            </p>
+            <div class="mt-8 text-2xl">
+                Stay curious. ✨
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 text-center p-6">
+        <p>&copy; 2025 Interactive Chemistry Explainer. A fun way to learn.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            let selectedParticleName = '';
+
+            function initAtomInteractive() {
+                const particles = document.querySelectorAll('.atom-particle');
+                const nameEl = document.getElementById('particle-name');
+                const chargeEl = document.getElementById('particle-charge');
+                const infoEl = document.getElementById('particle-info');
+                const explainBtn = document.getElementById('explain-simple-btn');
+                const explanationBox = document.getElementById('simple-explanation-box');
+
+                particles.forEach(p => {
+                    p.addEventListener('click', () => {
+                        selectedParticleName = p.dataset.name;
+                        nameEl.textContent = selectedParticleName;
+                        chargeEl.textContent = `Charge: ${p.dataset.charge}`;
+                        infoEl.textContent = p.dataset.info;
+                        explainBtn.classList.remove('hidden');
+                        explanationBox.classList.add('hidden');
+                        explanationBox.innerHTML = '';
+                    });
+                });
+            }
+
+            async function getSimpleExplanation() {
+                if (!selectedParticleName) return;
+
+                const explainBtn = document.getElementById('explain-simple-btn');
+                const explanationBox = document.getElementById('simple-explanation-box');
+                explanationBox.classList.remove('hidden');
+                explanationBox.innerHTML = '<div class="loader mx-auto"></div>';
+                explainBtn.disabled = true;
+
+                const prompt = `Explain what a ${selectedParticleName} in an atom is, but like you're explaining it to a 5-year-old using a simple analogy. Keep it short and fun.`;
+                
+                try {
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "yourapikey";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        explanationBox.innerHTML = text;
+                    } else {
+                        explanationBox.textContent = 'Sorry, I couldn\'t think of an explanation right now.';
+                    }
+                } catch (error) {
+                    console.error("Gemini API Error:", error);
+                    explanationBox.textContent = 'Error getting explanation. Please check the console.';
+                } finally {
+                    explainBtn.disabled = false;
+                }
+            }
+
+            async function getMoleculeSuggestion() {
+                const elementInput = document.getElementById('element-input');
+                const suggestionBox = document.getElementById('molecule-suggestion-box');
+                const suggestBtn = document.getElementById('suggest-molecule-btn');
+                const elementName = elementInput.value.trim();
+
+                if (!elementName) {
+                    suggestionBox.textContent = 'Please enter an element name.';
+                    return;
+                }
+
+                suggestionBox.innerHTML = '<div class="loader mx-auto"></div>';
+                suggestBtn.disabled = true;
+
+                const prompt = `I have the element "${elementName}". Suggest a simple, common molecule I can make with it. Tell me what it bonds with and what type of bond (ionic or covalent) it typically forms to make that molecule. Keep the response concise and easy to understand.`;
+
+                try {
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "yourapikey";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                     if (result.candidates && result.candidates.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        suggestionBox.innerHTML = text.replace(/\n/g, '<br>');
+                    } else {
+                        suggestionBox.textContent = 'Sorry, I couldn\'t think of a suggestion right now.';
+                    }
+                } catch (error) {
+                    console.error("Gemini API Error:", error);
+                    suggestionBox.textContent = 'Error getting suggestion. Please check the console.';
+                } finally {
+                    suggestBtn.disabled = false;
+                }
+            }
+
+            function initBondingTabs() {
+                const tabs = document.querySelectorAll('.bonding-tab-btn');
+                const contents = document.querySelectorAll('.bonding-tab-content');
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        tabs.forEach(t => {
+                            t.classList.remove('active', 'border-orange-500', 'text-orange-500');
+                            t.classList.add('border-transparent', 'text-slate-500');
+                        });
+                        tab.classList.add('active', 'border-orange-500', 'text-orange-500');
+                        tab.classList.remove('border-transparent', 'text-slate-500');
+
+                        contents.forEach(content => {
+                            content.classList.add('hidden');
+                        });
+                        document.getElementById(`${tab.dataset.tab}-content`).classList.remove('hidden');
+                    });
+                });
+            }
+
+            function initBondingAnimations() {
+                const ionicBtn = document.getElementById('ionic-bond-btn');
+                const covalentBtn = document.getElementById('covalent-bond-btn');
+                
+                ionicBtn.addEventListener('click', () => {
+                    const sodiumAtom = document.getElementById('sodium-atom');
+                    const chlorineAtom = document.getElementById('chlorine-atom');
+                    const electron = document.getElementById('sodium-electron');
+                    
+                    if (ionicBtn.textContent.includes('Reset')) {
+                        sodiumAtom.style.transform = 'translateX(-150px)';
+                        chlorineAtom.style.transform = 'translateX(150px)';
+                        electron.style.transform = 'translate(55px, 0px)';
+                        electron.style.opacity = '1';
+                        ionicBtn.textContent = 'Form Ionic Bond';
+                    } else {
+                        electron.style.transform = 'translate(150px, 0px)';
+                        electron.style.opacity = '0';
+                        setTimeout(() => {
+                           sodiumAtom.style.transform = 'translateX(-40px)';
+                           chlorineAtom.style.transform = 'translateX(40px)';
+                        }, 1000);
+                        ionicBtn.textContent = 'Reset Animation';
+                    }
+                });
+
+                covalentBtn.addEventListener('click', () => {
+                     const h1 = document.getElementById('hydrogen1-atom');
+                     const h2 = document.getElementById('hydrogen2-atom');
+
+                     if (covalentBtn.textContent.includes('Reset')) {
+                        h1.style.transform = 'translate(-150px, -60px)';
+                        h2.style.transform = 'translate(150px, -60px)';
+                        covalentBtn.textContent = 'Form Covalent Bond';
+                     } else {
+                        h1.style.transform = 'translate(-70px, -50px)';
+                        h2.style.transform = 'translate(70px, -50px)';
+                        covalentBtn.textContent = 'Reset Animation';
+                     }
+                });
+            }
+
+            function createConservationChart() {
+                const ctx = document.getElementById('conservation-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sodium (Na)', 'Hydrogen (H)', 'Carbon (C)', 'Oxygen (O)'],
+                        datasets: [
+                            { label: 'Reactants', data: [1, 5, 3, 5], backgroundColor: 'rgba(251, 146, 60, 0.6)' },
+                            { label: 'Products', data: [1, 5, 3, 5], backgroundColor: 'rgba(56, 189, 248, 0.6)' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Atoms' }}},
+                        plugins: { legend: { position: 'top' }}
+                    }
+                });
+            }
+
+            function initReactionAnimation() {
+                const reactionBtn = document.getElementById('reaction-btn');
+                const reactantsView = document.getElementById('reactants-view');
+                const productsView = document.getElementById('products-view');
+
+                reactionBtn.addEventListener('click', () => {
+                     if (reactionBtn.textContent.includes('Reset')) {
+                        reactantsView.style.opacity = '1';
+                        reactantsView.style.transform = 'scale(1)';
+                        productsView.style.opacity = '0';
+                        productsView.style.transform = 'scale(0.8)';
+                        reactionBtn.textContent = 'Start Reaction';
+                     } else {
+                        reactantsView.style.opacity = '0';
+                        reactantsView.style.transform = 'scale(0.8)';
+                        productsView.style.opacity = '1';
+                        productsView.style.transform = 'scale(1)';
+                        reactionBtn.textContent = 'Reset Animation';
+                     }
+                });
+            }
+
+            function initNavScrollSpy() {
+                const sections = document.querySelectorAll('section');
+                const navLinks = document.querySelectorAll('.nav-link');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            navLinks.forEach(link => {
+                                link.classList.remove('active');
+                                if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                    link.classList.add('active');
+                                }
+                            });
+                        }
+                    });
+                }, { rootMargin: '-50% 0px -50% 0px' });
+                sections.forEach(section => observer.observe(section));
+            }
+
+            document.getElementById('explain-simple-btn').addEventListener('click', getSimpleExplanation);
+            document.getElementById('suggest-molecule-btn').addEventListener('click', getMoleculeSuggestion);
+            document.getElementById('element-input').addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') {
+                    getMoleculeSuggestion();
+                }
+            });
+
+            initAtomInteractive();
+            initBondingTabs();
+            initBondingAnimations();
+            createConservationChart();
+            initReactionAnimation();
+            initNavScrollSpy();
+        });
+    </script>
+</body>
+</html>
